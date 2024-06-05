@@ -9,6 +9,12 @@
 #include "pc/lua/utils/smlua_level_utils.h"
 #include "pc/lua/utils/smlua_anim_utils.h"
 #include "pc/djui/djui.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h> // For POSIX systems
+#include <limits.h> // For PATH_MAX
+
 
 lua_State* gLuaState = NULL;
 u8 gLuaInitializingScript = 0;
@@ -266,6 +272,35 @@ void smlua_init(void) {
     smlua_exec_str(gSmluaConstants);
 
     smlua_cobject_init_globals();
+
+// auto execute part
+
+char* get_executable_directory() {
+    char* exePath = realpath("/proc/self/exe", NULL); // Path to the executable
+    if (exePath == NULL) {
+        perror("Error getting executable path");
+        return NULL;
+    }
+
+    char* directory = dirname(exePath); // Directory containing the executable
+
+    free(exePath);
+
+    return directory;
+}
+
+    char* exeDir = get_executable_directory();
+    if (exeDir == NULL) {
+        printf("Failed to get executable directory\n");
+        return 1;
+    }
+    char autoexecutePath[PATH_MAX];
+    snprintf(autoexecutePath, sizeof(autoexecutePath), "%s/autoexecute.lua", exeDir);
+
+    printf("Running autoexecute.lua: %s\n", autoexecutePath);
+    smlua_exec_file(autoexecutePath);
+
+    free(exeDir);
 
     // load scripts
     mods_size_enforce(&gActiveMods);
